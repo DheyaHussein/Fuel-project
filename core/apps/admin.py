@@ -34,7 +34,7 @@ class StoreHouseTypeAdmin(admin.ModelAdmin):
 # ModelAdmin for StoreHouse
 class StoreHouseAdmin(admin.ModelAdmin):
     # Fields to display in the admin list view
-    list_display = ('name', 'store_categroy', 'storekeeper', 'phone_number', 'location')
+    list_display = ('name', 'store_categroy', 'storekeeper', 'phone_number', 'location', 'current_amount')
     
     # Fields to enable search functionality
     search_fields = ('name', 'storekeeper', 'phone_number', 'location')
@@ -44,6 +44,13 @@ class StoreHouseAdmin(admin.ModelAdmin):
     
     # Option to filter by store category and location
     list_filter = ('store_categroy', 'location')
+    
+    # Custom method to display current_amount from related StoreHouseType
+    def current_amount(self, obj):
+        return obj.store_categroy.current_amount
+    
+    # Set a readable name for the custom column
+    current_amount.short_description = 'Current Amount'
 
 # Registering all models with their respective ModelAdmin classes
 admin.site.register(Category, CategoryAdmin)
