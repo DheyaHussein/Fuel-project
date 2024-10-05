@@ -238,7 +238,7 @@ class Supplier(models.Model):
 
 class Incoming(models.Model):
     # store_house = models.ForeignKey(StoreHouse, verbose_name=_("StoreHouse"), on_delete=models.CASCADE)
-    store = models.ForeignKey(StoreHouseCategroy, verbose_name=_("StoreHouse"), on_delete=models.CASCADE)
+    store = models.ForeignKey(StoreHouse, verbose_name=_("StoreHouse"), on_delete=models.CASCADE)
     incom_date = models.DateTimeField(_("incom_date"), auto_now=False, auto_now_add=False)
     paper_number = models.CharField(_("Numbering on Paper"), max_length=50)
     supplier = models.ForeignKey(Supplier, verbose_name=_("Supplier"), on_delete=models.CASCADE)
@@ -252,13 +252,13 @@ class Incoming(models.Model):
     # attach_file = GenericRelation(Image, related_query_name='attach_file')
     imported_quantites = models.CharField(_("imported quantites"), max_length=50)
     cat = models.CharField(_("catergory"), max_length=50)
-    note = models.CharField(_("note"), max_length=50)
+    note = models.CharField(_("note"), max_length=50, blank=True)
     
     class Meta:
         db_table = 'Incoming'
         
     def __str__(self):
-        return self.store.storehouse.name
+        return f'the income of {self.store.name}  type of {self.cat}'
     
     def save(self, *args, **kwargs):
         # Convert imported_quantites to a numeric value
@@ -268,7 +268,8 @@ class Incoming(models.Model):
             raise ValidationError(_("Imported quantities must be a valid number."))
 
         # Update the current_amount in the related StoreHouseCategroy
-        store_categroy_qs = StoreHouseCategroy.objects.filter(catergory__name=self.cat)
+        store_categroy_qs = StoreHouseCategroy.objects.filter(storehouse=self.store, catergory__name=self.cat)
+        
 
         # Update the current_amount for matching categories
         for store_categroy in store_categroy_qs:
@@ -334,11 +335,99 @@ class Outgoing(models.Model):
 
 
 
+
+class IncomingReturns(models.Model):
+    incoming = models.ForeignKey(Incoming, verbose_name=_("Related Incoming"), on_delete=models.CASCADE)
+    incoming_date = models.DateTimeField(_("Incoming Date"), editable=False)  # Derived from Incoming model
+    store_house = models.ForeignKey(StoreHouse, verbose_name=_("Store House"), on_delete=models.CASCADE, editable=False)  # From Incoming
+    supplier = models.ForeignKey(Supplier, verbose_name=_("Supplier"), on_delete=models.CASCADE, editable=False)  # From Incoming
+    station = models.ForeignKey(Station, verbose_name=_("Station"), on_delete=models.CASCADE, editable=False)  # From Incoming
+    paper_number = models.CharField(_("Numbering on Paper"), max_length=50, null=True)
+    recipient_name = models.CharField(_("Recipient`s Name"), max_length=90, null=True)
+    deliverer_name = models.CharField(max_length=50, null=True)
+    recipient_miltry_number = models.CharField(max_length=50, null=True)
+    deliverer_miltry_number = models.CharField(max_length=50, null=True)
+    return_date = models.DateTimeField(_("Return Date"), auto_now=False, auto_now_add=True)
+    
+    returned_quantites = models.CharField(_("Returned Quantities"), max_length=50)
+    reason_for_return = models.CharField(_("Reason for Return"), max_length=255)
+    note = models.TextField(_("Additional Note"), blank=True, null=True)
+
+    class Meta:
+        verbose_name = _("Incoming Return")
+        verbose_name_plural = _("Incoming Returns")
+        db_table = 'IncomingReturns'
+
+    def __str__(self):
+        return f"Return of {self.returned_quantites} from {self.incoming}"
+
+    def save(self, *args, **kwargs):
+        # Set values from the related Incoming instance
+        if self.incoming:
+            self.incoming_date = self.incoming.incom_date
+            self.store_house = self.incoming.store
+            self.supplier = self.incoming.supplier
+            self.station = self.incoming.station
+
+        # Convert returned_quantites to a numeric value
+        try:
+            returned_qty = float(self.returned_quantites)
+        except ValueError:
+            raise ValidationError(_("Returned quantities must be a valid number."))
+
+        # Find the StoreHouseCategroy based on the store_house and matching category (cat)
+        store_categroy_qs = StoreHouseCategroy.objects.filter(storehouse=self.store_house, catergory__name=self.incoming.cat)
+
+        # Update the current_amount for matching storehouses and categories
+        for store_categroy in store_categroy_qs:
+            # Add returned quantities to the current amount
+            if returned_qty < float(self.incoming.imported_quantites):  
+              store_categroy.current_amount -= returned_qty
+              store_categroy.save()
+            else:
+                raise ValidationError(_("the returned quantites it should not be biger then imported quantites"))
+
+        super().save(*args, **kwargs)
  
-    
-    
-      
-      
-    
-    
-    
+
+class OutgoingReturns(models.Model):
+    outgoing = models.ForeignKey(Outgoing, verbose_name=_("Related Outgoing"), on_delete=models.CASCADE)
+    outgoing_date = models.DateTimeField(_("Incoming Date"), editable=False)  # Derived from Outgoing model
+    store_house = models.ForeignKey(StoreHouse, verbose_name=_("Store House"), on_delete=models.CASCADE, editable=False)  # From Outgoing
+    supplier = models.ForeignKey(Supplier, verbose_name=_("Supplier"), on_delete=models.CASCADE, editable=False)  # From Outgoing
+    paper_number = models.CharField(_("Numbering on Paper"), max_length=50)
+    recipient_name = models.CharField(_("Recipient`s Name"), max_length=90)
+    deliverer_name = models.CharField(max_length=50)
+    recipient_miltry_number = models.CharField(max_length=50)
+    deliverer_miltry_number = models.CharField(max_length=50)
+    return_date = models.DateTimeField(_("Return Date"), auto_now=False, auto_now_add=True)
+    beneficiary = models.CharField(_("beneficiary"), max_length=50, editable=False)
+    returned_quantites = models.CharField(_("Returned Quantities"), max_length=50)
+    reason_for_return = models.CharField(_("Reason for Return"), max_length=255)
+    note = models.TextField(_("Additional Note"), blank=True, null=True)
+
+    class Meta:
+        verbose_name = _("Incoming Return")
+        verbose_name_plural = _("Incoming Returns")
+        db_table = 'OutgoingReturns'
+
+    def __str__(self):
+        return f"Return of {self.returned_quantites} from {self.outgoing}"    
+    def save(self, *args, **kwargs):
+        if self.outgoing:
+            self.outgoing_date = self.outgoing.outging_date
+            self.store_house = self.outgoing.store_house
+            self.beneficiary = self.outgoing.beneficiary
+        try:
+            returned_qty = float(self.returned_quantites)
+        except ValueError:
+            raise  ValidationError(_("Returned quantities must be a valid number."))
+
+        store_categroy_qs = StoreHouseCategroy.objects.filter(storehouse=self.store_house, catergory__name=self.incoming.cat)
+        
+        for store_categroy in store_categroy_qs:
+            if returned_qty < float(self.outgoing.outgoing_quantites):
+                store_categroy.current_amount += self.returned_quantites
+            else:
+                raise ValidationError(_("the returned quantites it should not be biger then outgoing quantites"))
+                

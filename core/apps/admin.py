@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 # Register your models here.
-from .models import Category, StoreHouseType, StoreHouse, Outgoing, Incoming, Station, Supplier, StoreHouseCategroy, Beneficiary
+from .models import Category, StoreHouseType, StoreHouse, Outgoing, Incoming, Station, Supplier, StoreHouseCategroy, Beneficiary, IncomingReturns
 
 # ModelAdmin for Category
 class CategoryAdmin(admin.ModelAdmin):
@@ -116,9 +116,27 @@ class StationAdmin(admin.ModelAdmin):
 class BeneficiaryAdmin(admin.ModelAdmin):
     list_display = ('name', 'phone_number')
     
+    
 
+
+class IncomingReturnsAdmin(admin.ModelAdmin):
+    list_display = ('incoming', 'incoming_date', 'store_house', 'supplier', 'station', 'return_date', 'returned_quantites')
+    search_fields = ('incoming__paper_number', 'supplier__name', 'store_house__name', 'station__station_name')
+    list_filter = ('incoming_date', 'store_house', 'supplier', 'station')
+    readonly_fields = ('incoming_date', 'store_house', 'supplier', 'station')
+
+    def has_add_permission(self, request):
+        # Allow add permission only if there is a related Incoming record
+        return Incoming.objects.exists()
+
+    def has_change_permission(self, request, obj=None):
+        return True
+
+    def has_delete_permission(self, request, obj=None):
+        return True
+    
+admin.site.register(IncomingReturns, IncomingReturnsAdmin)
 admin.site.register(Beneficiary, BeneficiaryAdmin)
-
 admin.site.register(Incoming, IncomingAdmin)
 admin.site.register(Outgoing, OutgoingAdmin)
 admin.site.register(StoreHouseCategroy, StoreHouseCategroyAdmin)
