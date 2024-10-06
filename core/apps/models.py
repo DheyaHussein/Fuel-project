@@ -234,7 +234,10 @@ class Supplier(models.Model):
 #     def __str__(self):
 #         return self.image.url
 
-
+CATEGORY_CHOICES = [
+    ('gass', 'gass'),
+    ('oil', 'oil'),
+]
 
 class Incoming(models.Model):
     # store_house = models.ForeignKey(StoreHouse, verbose_name=_("StoreHouse"), on_delete=models.CASCADE)
@@ -251,14 +254,14 @@ class Incoming(models.Model):
     # statement = models.CharField(_("statement"), max_length=50)
     # attach_file = GenericRelation(Image, related_query_name='attach_file')
     imported_quantites = models.CharField(_("imported quantites"), max_length=50)
-    cat = models.CharField(_("catergory"), max_length=50)
+    cat = models.CharField(_("catergory"), max_length=50, choices=CATEGORY_CHOICES)
     note = models.CharField(_("note"), max_length=50, blank=True)
     
     class Meta:
         db_table = 'Incoming'
         
     def __str__(self):
-        return f'the income of {self.store.name}  type of {self.cat}'
+        return f'the incoming to  {self.store.name}  type of {self.cat}'
     
     def save(self, *args, **kwargs):
         # Convert imported_quantites to a numeric value
@@ -297,7 +300,7 @@ class Outgoing(models.Model):
     # statement = models.CharField(_("statement"), max_length=50)
     # attach_file = GenericRelation(Image, related_query_name='attach_file')
     outgoing_quantites = models.CharField(_("outgoing quantites"), max_length=50)
-    cat = models.CharField(_("catergory"), max_length=50)
+    cat = models.CharField(_("catergory"), max_length=50, choices=CATEGORY_CHOICES)
     note = models.CharField(_("note"), max_length=50)
     transfer_date = models.DateField(_("transfer date"), auto_now=False, auto_now_add=False)
     current_transfer_date = models.DateField(_("transfer date"), auto_now=False, auto_now_add=True)
@@ -306,7 +309,8 @@ class Outgoing(models.Model):
         db_table = 'Outgoing'
         
     def __str__(self):
-        return self.store_house.name
+        return f'the outgoing from  {self.store.name}  type of {self.cat}'
+
     
     
     def save(self, *args, **kwargs):
@@ -348,7 +352,7 @@ class IncomingReturns(models.Model):
     recipient_miltry_number = models.CharField(max_length=50, null=True)
     deliverer_miltry_number = models.CharField(max_length=50, null=True)
     return_date = models.DateTimeField(_("Return Date"), auto_now=False, auto_now_add=True)
-    
+    cat = models.CharField(_("catergory"), max_length=50, choices=CATEGORY_CHOICES, null=True)
     returned_quantites = models.CharField(_("Returned Quantities"), max_length=50)
     reason_for_return = models.CharField(_("Reason for Return"), max_length=255)
     note = models.TextField(_("Additional Note"), blank=True, null=True)
@@ -359,7 +363,7 @@ class IncomingReturns(models.Model):
         db_table = 'IncomingReturns'
 
     def __str__(self):
-        return f"Return of {self.returned_quantites} from {self.incoming}"
+        return f"Incoming Return of {self.returned_quantites} from {self.incoming}"
 
     def save(self, *args, **kwargs):
         # Set values from the related Incoming instance
@@ -376,7 +380,8 @@ class IncomingReturns(models.Model):
             raise ValidationError(_("Returned quantities must be a valid number."))
 
         # Find the StoreHouseCategroy based on the store_house and matching category (cat)
-        store_categroy_qs = StoreHouseCategroy.objects.filter(storehouse=self.store_house, catergory__name=self.incoming.cat)
+        if self.cat == self.incoming.cat:
+            store_categroy_qs = StoreHouseCategroy.objects.filter(storehouse=self.store_house, catergory__name=self.incoming.cat)
 
         # Update the current_amount for matching storehouses and categories
         for store_categroy in store_categroy_qs:
@@ -392,7 +397,7 @@ class IncomingReturns(models.Model):
 
 class OutgoingReturns(models.Model):
     outgoing = models.ForeignKey(Outgoing, verbose_name=_("Related Outgoing"), on_delete=models.CASCADE)
-    outgoing_date = models.DateTimeField(_("Incoming Date"), editable=False)  # Derived from Outgoing model
+    outgoing_date = models.DateTimeField(_("Outgoing Date"), editable=False)  # Derived from Outgoing model
     store_house = models.ForeignKey(StoreHouse, verbose_name=_("Store House"), on_delete=models.CASCADE, editable=False)  # From Outgoing
     supplier = models.ForeignKey(Supplier, verbose_name=_("Supplier"), on_delete=models.CASCADE, editable=False)  # From Outgoing
     paper_number = models.CharField(_("Numbering on Paper"), max_length=50)
@@ -402,17 +407,18 @@ class OutgoingReturns(models.Model):
     deliverer_miltry_number = models.CharField(max_length=50)
     return_date = models.DateTimeField(_("Return Date"), auto_now=False, auto_now_add=True)
     beneficiary = models.CharField(_("beneficiary"), max_length=50, editable=False)
+    cat = models.CharField(_("catergory"), max_length=50, choices=CATEGORY_CHOICES, null=True)
     returned_quantites = models.CharField(_("Returned Quantities"), max_length=50)
     reason_for_return = models.CharField(_("Reason for Return"), max_length=255)
     note = models.TextField(_("Additional Note"), blank=True, null=True)
 
     class Meta:
-        verbose_name = _("Incoming Return")
-        verbose_name_plural = _("Incoming Returns")
+        verbose_name = _("Outgoing Return")
+        verbose_name_plural = _("Outgoing Returns")
         db_table = 'OutgoingReturns'
 
     def __str__(self):
-        return f"Return of {self.returned_quantites} from {self.outgoing}"    
+        return f"Outgoing Return of {self.returned_quantites} from {self.outgoing}"    
     def save(self, *args, **kwargs):
         if self.outgoing:
             self.outgoing_date = self.outgoing.outging_date
@@ -422,8 +428,10 @@ class OutgoingReturns(models.Model):
             returned_qty = float(self.returned_quantites)
         except ValueError:
             raise  ValidationError(_("Returned quantities must be a valid number."))
-
-        store_categroy_qs = StoreHouseCategroy.objects.filter(storehouse=self.store_house, catergory__name=self.incoming.cat)
+        
+        
+        if self.cat == self.outgoing.cat:
+            store_categroy_qs = StoreHouseCategroy.objects.filter(storehouse=self.store_house, catergory__name=self.outgoing.cat)
         
         for store_categroy in store_categroy_qs:
             if returned_qty < float(self.outgoing.outgoing_quantites):
@@ -431,3 +439,85 @@ class OutgoingReturns(models.Model):
             else:
                 raise ValidationError(_("the returned quantites it should not be biger then outgoing quantites"))
                 
+class Damaged(models.Model):
+    store = models.ForeignKey(StoreHouse, verbose_name=_("StoreHouse"), on_delete=models.CASCADE)
+    damaged_date = models.DateField(_("damaged date"), auto_now=False, auto_now_add=False)
+    paper_number = models.CharField(_("Numbering on Paper"), max_length=50)
+    recipient_name = models.CharField(_("Recipient`s Name"), max_length=90)
+    recipient_miltry_number = models.CharField(max_length=50)
+    deliverer_name = models.CharField(max_length=50)
+    deliverer_miltry_number = models.CharField(max_length=50)
+    damaged_quantites = models.FloatField(_("Damaged Quantities"))
+    cat = models.CharField(_("catergory"), max_length=50, choices=CATEGORY_CHOICES)
+    reason_for_damaged = models.CharField(_("Reason for Damaged"), max_length=255)
+    note = models.TextField(_("Additional Note"), blank=True, null=True)
+    
+    class Meta:
+        db_table = 'Damaged'
+     
+    def save(self, *args, **kwargs):
+        
+        store_categroy_qs = StoreHouseCategroy.objects.filter(storehouse=self.store, catergory__name=self.cat)
+        for store_amount in store_categroy_qs:
+            store_amount.current_amount -= self.damaged_quantites
+            store_amount.save()
+            
+        super().save(*args, **kwargs)
+        
+ 
+class TransformationStoreHouse(models.Model):
+    from_storehouse = models.ForeignKey(StoreHouse, related_name='transfer_from', verbose_name=_("Transform from"), on_delete=models.CASCADE)
+    to_storehouse = models.ForeignKey(StoreHouse, related_name='transfer_to', verbose_name=_("Transform to"), on_delete=models.CASCADE)
+    transform_date = models.DateField(_("Transfor date"), auto_now=False, auto_now_add=False)
+    paper_number = models.CharField(_("Numbering on Paper"), max_length=50)
+    recipient_name = models.CharField(_("Recipient`s Name"), max_length=90)
+    recipient_miltry_number = models.CharField(max_length=50)
+    deliverer_name = models.CharField(max_length=50)
+    deliverer_miltry_number = models.CharField(max_length=50)
+    transform_quantites = models.FloatField(_("Transform Quantities"))
+    reason_for_transform = models.CharField(_("Reason for Return"), max_length=255)
+    cat = models.CharField(_("catergory"), max_length=50, choices=CATEGORY_CHOICES, null=True)
+    note = models.TextField(_("Additional Note"), blank=True, null=True)
+    
+    
+ 
+     
+ 
+    class Meta:
+         verbose_name = _("transformationStoreHouse")
+         verbose_name_plural = _("transformationStoreHouses")
+         db_table = 'TransformationStoreHouse'
+ 
+    def __str__(self):
+         return f'Transform from {self.from_storehouse} to {self.to_storehouse}'
+ 
+    #  def get_absolute_url(self):
+    #      return reverse("transformationStoreHouse_detail", kwargs={"pk": self.pk})
+    def save(self, *args, **kwargs):
+        # Fetch StoreHouseCategory records for 'from_storehouse' and 'to_storehouse'
+        store_category_from = StoreHouseCategroy.objects.filter(storehouse=self.from_storehouse, catergory__name=self.cat).first()
+        store_category_to = StoreHouseCategroy.objects.filter(storehouse=self.to_storehouse, catergory__name=self.cat).first()
+        print(store_category_from)
+
+        # Check if there's enough stock in the from_storehouse
+        if store_category_from and store_category_to:
+            if self.transform_quantites <= store_category_from.current_amount:
+                # Subtract quantity from 'from_storehouse'
+                store_category_from.current_amount -= self.transform_quantites
+                store_category_from.save()
+
+                # Add quantity to 'to_storehouse'
+                store_category_to.current_amount += self.transform_quantites
+                store_category_to.save()
+            else:
+                raise ValidationError(_("The transform quantities must not exceed the available quantity in the 'from' store."))
+        else:
+            raise ValidationError(_("Either the 'from' storehouse or 'to' storehouse category does not exist."))
+
+        # Call the parent save method
+        super().save(*args, **kwargs)
+            
+        
+        
+               
+               

@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 # Register your models here.
-from .models import Category, StoreHouseType, StoreHouse, Outgoing, Incoming, Station, Supplier, StoreHouseCategroy, Beneficiary, IncomingReturns
+from .models import *
 
 # ModelAdmin for Category
 class CategoryAdmin(admin.ModelAdmin):
@@ -120,7 +120,7 @@ class BeneficiaryAdmin(admin.ModelAdmin):
 
 
 class IncomingReturnsAdmin(admin.ModelAdmin):
-    list_display = ('incoming', 'incoming_date', 'store_house', 'supplier', 'station', 'return_date', 'returned_quantites')
+    list_display = ('incoming', 'incoming_date', 'store_house', 'supplier', 'station', 'return_date', 'cat',  'returned_quantites')
     search_fields = ('incoming__paper_number', 'supplier__name', 'store_house__name', 'station__station_name')
     list_filter = ('incoming_date', 'store_house', 'supplier', 'station')
     readonly_fields = ('incoming_date', 'store_house', 'supplier', 'station')
@@ -134,7 +134,47 @@ class IncomingReturnsAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return True
-    
+
+
+class OutgoingReturnsAdmin(admin.ModelAdmin):
+    list_display = ('outgoing', 'outgoing_date', 'store_house', 'supplier', 'paper_number', 'recipient_name', 'deliverer_name', 'returned_quantites', 'return_date')
+    search_fields = ('outgoing__paper_number', 'supplier__name', 'store_house__name', 'recipient_name')
+    list_filter = ('outgoing_date', 'store_house', 'supplier')
+    readonly_fields = ('outgoing_date', 'store_house', 'supplier', 'beneficiary')
+
+    def has_add_permission(self, request):
+        # Ensure that new returns can only be added if there are outgoing records
+        return Outgoing.objects.exists()
+
+
+
+class TransformationStoreHouseAdmin(admin.ModelAdmin):
+    list_display = ('from_storehouse', 'to_storehouse', 'transform_date', 'paper_number', 'recipient_name', 'deliverer_name', 'transform_quantites', 'cat')
+    search_fields = ('from_storehouse__name', 'to_storehouse__name', 'paper_number', 'recipient_name', 'deliverer_name', 'cat')
+    list_filter = ('transform_date', 'from_storehouse', 'to_storehouse', 'cat')
+    # readonly_fields = ('from_storehouse', 'to_storehouse', 'transform_date')
+
+    def has_add_permission(self, request):
+        # Allow adding transformations only if there are storehouses
+        return StoreHouse.objects.exists()
+
+
+
+class DamagedAdmin(admin.ModelAdmin):
+    list_display = ('store', 'damaged_date', 'paper_number', 'recipient_name', 'deliverer_name', 'damaged_quantites', 'cat', 'reason_for_damaged')
+    search_fields = ('store__name', 'paper_number', 'recipient_name', 'deliverer_name', 'cat')
+    list_filter = ('damaged_date', 'store', 'cat')
+    readonly_fields = ('damaged_date', 'store', 'paper_number')
+
+    def has_add_permission(self, request):
+        # Check if there are any stores available for damaged items
+        return StoreHouse.objects.exists()
+
+
+
+admin.site.register(TransformationStoreHouse, TransformationStoreHouseAdmin)
+admin.site.register(Damaged, DamagedAdmin)
+admin.site.register(OutgoingReturns, OutgoingReturnsAdmin)    
 admin.site.register(IncomingReturns, IncomingReturnsAdmin)
 admin.site.register(Beneficiary, BeneficiaryAdmin)
 admin.site.register(Incoming, IncomingAdmin)
