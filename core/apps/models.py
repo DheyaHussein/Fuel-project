@@ -3,11 +3,10 @@ from django.utils.translation import gettext_lazy as _
 from django.core.validators import RegexValidator
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.utils import timezone
-from django.contrib.contenttypes.fields import GenericRelation
-from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
-
+from django.contrib.contenttypes.models import ContentType
 
 
 
@@ -219,20 +218,23 @@ class Supplier(models.Model):
 #         return f'{instance.content_type.name}-images/{filename}'
 #     return f'images/unknown/{filename}'
 
+def generate_upload_path(instance, filename):
+    if instance.content_type:
+        return f'{instance.content_type.name}-images/{filename}'
 
-# class Image(models.Model):
+class Image(models.Model):
 
-#     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
-#     object_id = models.PositiveIntegerField()
-#     content_object = GenericForeignKey()
-#     image = models.ImageField(_("Image"), upload_to=generate_upload_to_path)
-#     # def save(self, *args, **kwargs):
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey()
+    image = models.ImageField(_("Image"), upload_to=generate_upload_path)
+    # def save(self, *args, **kwargs):
 
-#     #     if self.content_type:
-#     #         self.image.upload_to = f'{self.content_type.name}/'
-#     #     return super().save(*args, **kwargs)
-#     def __str__(self):
-#         return self.image.url
+    #     if self.content_type:
+    #         self.image.upload_to = f'{self.content_type.name}/'
+    #     return super().save(*args, **kwargs)
+    def __str__(self):
+        return self.image.url
 
 CATEGORY_CHOICES = [
     ('gass', 'gass'),
@@ -252,7 +254,7 @@ class Incoming(models.Model):
     recipient_miltry_number = models.CharField(max_length=50)
     deliverer_miltry_number = models.CharField(max_length=50)
     # statement = models.CharField(_("statement"), max_length=50)
-    # attach_file = GenericRelation(Image, related_query_name='attach_file')
+    attach_file = GenericRelation(Image, related_query_name='attach_file')
     imported_quantites = models.CharField(_("imported quantites"), max_length=50)
     cat = models.CharField(_("catergory"), max_length=50, choices=CATEGORY_CHOICES)
     note = models.CharField(_("note"), max_length=50, blank=True)
@@ -265,6 +267,8 @@ class Incoming(models.Model):
     
     def save(self, *args, **kwargs):
         # Convert imported_quantites to a numeric value
+        if self.pk:  # If the object already exists (has been saved before)
+            raise ValueError("This record cannot be modified after it's been saved.")
         try:
             imported_qty = float(self.imported_quantites)
         except ValueError:
@@ -298,7 +302,7 @@ class Outgoing(models.Model):
     recipient_miltry_number = models.CharField(max_length=50)
     deliverer_miltry_number = models.CharField(max_length=50)
     # statement = models.CharField(_("statement"), max_length=50)
-    # attach_file = GenericRelation(Image, related_query_name='attach_file')
+    attach_file = GenericRelation(Image, related_query_name='attach_file')
     outgoing_quantites = models.CharField(_("outgoing quantites"), max_length=50)
     cat = models.CharField(_("catergory"), max_length=50, choices=CATEGORY_CHOICES)
     note = models.CharField(_("note"), max_length=50)
@@ -314,6 +318,9 @@ class Outgoing(models.Model):
     
     
     def save(self, *args, **kwargs):
+        if self.pk:
+            raise ValueError("This record cannot be modified after it's been saved.")
+
         outgogin_qty = float(self.outgoing_quantites)
         storehouse_type = self.store_house.id
         print(storehouse_type)

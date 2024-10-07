@@ -106,7 +106,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Aden'
 
 USE_I18N = True
 
@@ -120,6 +120,13 @@ STATIC_URL = 'static/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
+
+MEDIA_URL = 'media/'
+MEDIAFILES_DIRS = [
+    BASE_DIR / "../media",
+]
+MEDIA_ROOT = BASE_DIR / '../media'
+
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'apps.User'

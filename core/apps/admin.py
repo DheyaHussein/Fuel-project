@@ -2,8 +2,17 @@ from django.contrib import admin
 
 # Register your models here.
 from .models import *
+from django.contrib.contenttypes.admin import GenericTabularInline
+
+
 
 # ModelAdmin for Category
+
+
+class ImageInline(GenericTabularInline):
+    model = Image
+    extra = 1  # Number of extra forms to display 
+
 class CategoryAdmin(admin.ModelAdmin):
     # Fields to display in the admin list view
     list_display = ('name',)
@@ -58,10 +67,15 @@ class StoreHouseCategroyAdmin(admin.ModelAdmin):
     
 class IncomingAdmin(admin.ModelAdmin):
     # Fields to display in the admin list view
-    list_display = ('incom_date', 'paper_number', 'supplier', 'station', 'supply_voucher_number', 'recipient_name', 'deliverer_name', 'imported_quantites', 'cat', 'note')
+    inlines = [ImageInline]  # Add Image inline
+
+    list_display = ('incom_date', 'paper_number', 
+                    'supplier', 'station', 'supply_voucher_number', 'recipient_name',
+                    'deliverer_name', 'imported_quantites', 'cat', 'note')
     
     # Fields to enable search functionality
-    search_fields = ('store_house__storehouse__name', 'paper_number', 'recipient_name', 'deliverer_name', 'imported_quantites', 'cat', 'note')
+    search_fields = ('store_house__storehouse__name', 'paper_number', 'recipient_name',
+                     'deliverer_name', 'imported_quantites', 'cat', 'note')
     
     # Ordering the list by incoming date
     ordering = ('incom_date',)
@@ -72,7 +86,11 @@ class IncomingAdmin(admin.ModelAdmin):
 # ModelAdmin for Outgoing
 class OutgoingAdmin(admin.ModelAdmin):
     # Fields to display in the admin list view
-    list_display = ('store_house', 'outging_date', 'paper_number', 'beneficiary', 'supply_voucher_number', 'recipient_name', 'deliverer_name', 'outgoing_quantites', 'cat', 'note', 'transfer_date', 'current_transfer_date')
+    inlines = [ImageInline]  # Add Image inline
+
+    list_display = ('store_house', 'outging_date', 'paper_number', 'beneficiary',
+                    'supply_voucher_number', 'recipient_name', 'deliverer_name',
+                    'outgoing_quantites', 'cat', 'note', 'transfer_date', 'current_transfer_date')
     
     # Fields to enable search functionality
     search_fields = ('store_house__name', 'paper_number', 'recipient_name', 'deliverer_name', 'outgoing_quantites', 'cat', 'note')
