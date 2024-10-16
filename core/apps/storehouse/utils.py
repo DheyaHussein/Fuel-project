@@ -58,7 +58,7 @@ def register_fonts():
     """
     Registers the Amiri font with ReportLab.
     """
-    amiri_font_path = os.path.join(settings.STATICFILES_DIRS, 'NotoSansArabic.ttf')
+    amiri_font_path = os.path.join(r'C:\\Users\\USERWD\\Fuel-project\\core\static\\NotoSansArabic.ttf', 'NotoSansArabic.ttf')
     if not os.path.exists(amiri_font_path):
      pdfmetrics.registerFont(TTFont('NotoSansArabic', amiri_font_path))
 
@@ -81,7 +81,7 @@ def generate_storehouse_pdf(storehouses, file_path):
     :param file_path: Path where the PDF will be saved.
     """
     # Register fonts
-    register_fonts()
+    # register_fonts()
     
     # Create a PDF document
     doc = SimpleDocTemplate(
@@ -94,12 +94,12 @@ def generate_storehouse_pdf(storehouses, file_path):
     elements = []
     
     # Define styles
-    styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(name='Center', alignment=1, fontName='NotoSansArabic'))
-    styles.add(ParagraphStyle(name='Right', alignment=2, fontName='NotoSansArabic'))
+    # styles = getSampleStyleSheet()
+    # styles.add(ParagraphStyle(name='Center', alignment=1, fontName='NotoSansArabic'))
+    # styles.add(ParagraphStyle(name='Right', alignment=2, fontName='NotoSansArabic'))
     
     # Title
-    elements.append(Paragraph('تقرير المخازن', style=['Center']))
+    elements.append(Paragraph('Store Report', encoding='utf8'))
     elements.append(Spacer(1, 12))
     
     # Table data
@@ -130,7 +130,7 @@ def generate_storehouse_pdf(storehouses, file_path):
         ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
         
         ('ALIGN', (0,0), (-1,-1), 'RIGHT'),
-        ('FONTNAME', (0,0), (-1,-1), 'Center'),
+        # ('FONTNAME', (0,0), (-1,-1), 'Center'),
         ('FONTSIZE', (0,0), (-1,-1), 10),
         
         ('BOTTOMPADDING', (0,0), (-1,0), 12),

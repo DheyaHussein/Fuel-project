@@ -6,6 +6,8 @@ from django.http import HttpResponse
 from ..storehouse.utils import generate_storehouse_pdf  # Import the helper function
 from django.urls import reverse_lazy
 import os
+from rest_framework import viewsets
+from ..api.serializers import *
 
 
 from django.conf import settings
@@ -13,6 +15,21 @@ from django.conf import settings
 
 
 # Create your views here.
+
+class StorHouseView(viewsets.ViewSet):
+    
+    """_summary_
+    
+
+    Returns:
+        _type_: _description_
+    """ 
+    queryset = StoreHouse.objects.all()
+    
+    
+
+
+
 
 class StoreHouseListView(ListView):
     model = StoreHouse

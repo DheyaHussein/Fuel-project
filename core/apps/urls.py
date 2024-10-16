@@ -3,5 +3,6 @@ from . import views
 
 
 urlpatterns = [
-    path("store/", include('apps.storehouse.urls')),
+    # path("store/", include('apps.storehouse.urls')),
+    path("", include("apps.api.urls")),
 ]
