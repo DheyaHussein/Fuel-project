@@ -241,6 +241,24 @@ CATEGORY_CHOICES = [
     ('oil', 'oil'),
 ]
 
+
+class CommonInfo(models.Model):
+    paper_number = models.CharField(_("Numbering on Paper"), max_length=50, null=True)
+    recipient_name = models.CharField(_("Recipient`s Name"), max_length=90, null=True)
+    recipient_miltry_number = models.CharField(max_length=50, null=True)
+    deliverer_name = models.CharField(max_length=50, null=True)
+    deliverer_miltry_number = models.CharField(max_length=50, null=True)
+    note = models.TextField(_("Additional Note"), blank=True, null=True)
+    cat = models.CharField(_("catergory"), max_length=50, choices=CATEGORY_CHOICES)
+    attach_file = GenericRelation(Image, related_query_name='attach_file')
+
+
+    
+    
+    class Meta:
+        abstract = True 
+        
+
 class Incoming(models.Model):
     # store_house = models.ForeignKey(StoreHouse, verbose_name=_("StoreHouse"), on_delete=models.CASCADE)
     store = models.ForeignKey(StoreHouse, verbose_name=_("StoreHouse"), on_delete=models.CASCADE)
@@ -389,15 +407,21 @@ class IncomingReturns(models.Model):
         # Find the StoreHouseCategroy based on the store_house and matching category (cat)
         if self.cat == self.incoming.cat:
             store_categroy_qs = StoreHouseCategroy.objects.filter(storehouse=self.store_house, catergory__name=self.incoming.cat)
+           
 
         # Update the current_amount for matching storehouses and categories
-        for store_categroy in store_categroy_qs:
-            # Add returned quantities to the current amount
-            if returned_qty < float(self.incoming.imported_quantites):  
-              store_categroy.current_amount -= returned_qty
-              store_categroy.save()
-            else:
-                raise ValidationError(_("the returned quantites it should not be biger then imported quantites"))
+            for store_categroy in store_categroy_qs:
+                # Add returned quantities to the current amount
+                if returned_qty < float(self.incoming.imported_quantites):
+                  print(store_categroy.current_amount)    
+                  store_categroy.current_amount -= returned_qty
+                  print(store_categroy.current_amount)    
+                
+                  store_categroy.save()
+                else:
+                    raise ValidationError(_("the returned quantites it should not be biger then imported quantites"))
+        else: 
+            raise ValidationError(_("the Categroy of returen incoming should be the same of the incoming Categroy")) 
 
         super().save(*args, **kwargs)
  
@@ -440,11 +464,13 @@ class OutgoingReturns(models.Model):
         if self.cat == self.outgoing.cat:
             store_categroy_qs = StoreHouseCategroy.objects.filter(storehouse=self.store_house, catergory__name=self.outgoing.cat)
         
-        for store_categroy in store_categroy_qs:
-            if returned_qty < float(self.outgoing.outgoing_quantites):
-                store_categroy.current_amount += self.returned_quantites
-            else:
-                raise ValidationError(_("the returned quantites it should not be biger then outgoing quantites"))
+            for store_categroy in store_categroy_qs:
+              if returned_qty < float(self.outgoing.outgoing_quantites):
+                  store_categroy.current_amount += self.returned_quantites
+              else:
+                 raise ValidationError(_("the returned quantites it should not be biger then outgoing quantites"))
+        else:
+            raise ValidationError(_("the Categroy of returen outgoing should be the same of the outgoing Categroy"))
                 
 class Damaged(models.Model):
     store = models.ForeignKey(StoreHouse, verbose_name=_("StoreHouse"), on_delete=models.CASCADE)

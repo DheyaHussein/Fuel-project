@@ -37,8 +37,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    #Internal 
     'apps',
+    #External
     'rest_framework',
+    'drf_spectacular',
     'django_filters',
 
 
@@ -103,7 +106,18 @@ REST_FRAMEWORK = {
     # or allow read-only access for unauthenticated users.
     'DEFAULT_PERMISSION_CLASSES': [
         # 'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
-    ]
+    ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    
+    
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': ' API Documentation for Fuel Management Project ',
+    'DESCRIPTION': 'RealEstate project description',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': True,
+    # OTHER SETTINGS
 }
 
 

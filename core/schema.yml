@@ -1,0 +1,186 @@
+openapi: 3.0.3
+info:
+  title: ' API Documentation for Fuel Management Project '
+  version: 1.0.0
+  description: RealEstate project description
+paths:
+  /api/store/:
+    get:
+      operationId: api_store_list
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StoreHouse'
+          description: ''
+  /api/user/:
+    get:
+      operationId: api_user_list
+      tags:
+      - api
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+          description: ''
+  /tool/store/:
+    get:
+      operationId: tool_store_list
+      tags:
+      - tool
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StoreHouse'
+          description: ''
+  /tool/user/:
+    get:
+      operationId: tool_user_list
+      tags:
+      - tool
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+          description: ''
+components:
+  schemas:
+    StoreHouse:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 50
+        storekeeper:
+          type: string
+          maxLength: 100
+        phone_number:
+          type: string
+          maxLength: 30
+        location:
+          type: string
+          maxLength: 90
+      required:
+      - id
+      - location
+      - name
+      - phone_number
+      - storekeeper
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        password:
+          type: string
+          maxLength: 128
+        last_login:
+          type: string
+          format: date-time
+          nullable: true
+        is_superuser:
+          type: boolean
+          title: Superuser status
+          description: Designates that this user has all permissions without explicitly
+            assigning them.
+        name:
+          type: string
+          title: Full Name
+          maxLength: 50
+        username:
+          type: string
+          nullable: true
+          title: User name
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          maxLength: 50
+        user_type:
+          $ref: '#/components/schemas/UserTypeEnum'
+        email:
+          type: string
+          format: email
+          title: Email address
+          maxLength: 254
+        register_data:
+          type: string
+          maxLength: 20
+        is_staff:
+          type: boolean
+          title: Staff status
+          description: Designates whether the user can log into this admin site.
+        is_active:
+          type: boolean
+          title: Active
+          description: Designates whether this user should be treated as active. Unselect
+            this instead of deleting accounts.
+        is_deleted:
+          type: boolean
+          title: Deleted
+        date_joined:
+          type: string
+          format: date-time
+        groups:
+          type: array
+          items:
+            type: integer
+          description: The groups this user belongs to. A user will get all permissions
+            granted to each of their groups.
+        user_permissions:
+          type: array
+          items:
+            type: integer
+          description: Specific permissions for this user.
+      required:
+      - email
+      - id
+      - name
+      - password
+    UserTypeEnum:
+      enum:
+      - manager
+      - employee
+      type: string
+      description: |-
+        * `manager` - StoreHouse Manager
+        * `employee` - StoreHouse Employee
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid

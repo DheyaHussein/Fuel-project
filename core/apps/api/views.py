@@ -2,7 +2,20 @@
 # from myapp.serializers import UserSerializer
 from rest_framework.generics import ListAPIView
 # from rest_framework.permissions import IsAdminUser
-from apps.models import *
+from apps.models import (
+    StoreHouse,
+    Station,
+    User,
+    Incoming,
+    Outgoing,
+    IncomingReturns,
+    Image,
+    StoreHouseCategroy,
+    Supplier,
+    Category,
+    Beneficiary,
+    
+)
 from .serializers import *
 
 

@@ -3,10 +3,135 @@ from django.contrib import admin
 # Register your models here.
 from .models import *
 from django.contrib.contenttypes.admin import GenericTabularInline
+from django import forms
+from django.contrib.auth.admin import UserAdmin
+from django.utils.translation import gettext_lazy as _
+
+from django.contrib.auth.forms import (
+    AdminPasswordChangeForm,
+    UserChangeForm,
+    UserCreationForm,
+    ReadOnlyPasswordHashField,
+    UsernameField,
+)  # Register your models here.
 
 
 
 # ModelAdmin for Category
+
+class CustomUserChangeForm(forms.ModelForm):
+    """
+    Custom UserChangForm For AdminUser registertions
+    """
+    password = ReadOnlyPasswordHashField(
+        label=_("Password"),
+        help_text=_(
+            "Raw passwords are not stored, so there is no way to see this "
+            "user’s password, but you can change the password using "
+            '<a href="{}">this form</a>.'
+        ),
+    )
+
+    class Meta:
+        model = User
+        fields = ("name", "email", "is_active", "is_staff",
+                  "is_superuser",  "groups", "username",)
+        # field_classes = {"email": forms.EmailField}
+
+
+class CustomUserCreationForm(UserCreationForm):
+    """
+        Custom UserChangForm For AdminUser registertions
+    """
+    class Meta:
+        model = User
+        fields = ("name", "email", "is_active", "is_staff",
+                  "is_superuser",  "groups", "username",)
+        # field_classes = {'email': forms.EmailField}
+
+
+class CustomAdminUser(UserAdmin):
+    """
+        Custom CustomUSerAdmin For User registertions to add grops and Custom Disgan
+
+    """
+    fieldsets = (
+        (None, {"fields": ("username", "password")}),
+        (_("Personal info"), {
+         "fields": ("name", "email")}),
+        (
+            _("Permissions"),
+            {
+                "fields": (
+                    "is_active",
+                    "is_staff",
+                    "is_superuser",
+                    "groups",
+                    "user_permissions",
+                    "user_type"
+                ),
+            },
+        ),
+        (_("Important dates"), {"fields": ("last_login", "date_joined")}),
+    )
+    add_fieldsets = (
+        (
+            None,
+            {
+                "classes": ("wide",),
+                "fields": ("username", "email", "password1", "password2", 'name', "user_type"),
+            },
+        ),
+    )
+    form = CustomUserChangeForm
+
+    def save_model(self, request, obj, form, change):
+        # Save the user object in Django database
+        obj.save()
+
+        # # Check if the user is newly created (not updated)
+        # if not change:
+        #     # Add the user to Firebase
+        #     db = firestore.client()
+        #     users_ref = db.collection('Users')
+        #     users_ref.document(str(obj.id)).set({
+        #         'email': obj.email,
+        #         'fullName': obj.name,
+        #         'userType': obj.user_type,
+        #         'phone_number': obj.phone_number,
+        #         'imageUrl': obj.image.url if obj.image else '',
+        #         # Add other fields as needed
+        #     }, merge=True)
+
+    # add_form = CustomUserCreationForm
+    change_password_form = AdminPasswordChangeForm
+    list_display = ("email", "name",
+                     "is_staff", 'is_deleted', 'is_active')
+    list_filter = ("is_staff", "is_superuser",
+                   "is_active", "groups",  'is_deleted', 'is_active')
+    search_fields = ("username",
+                     "phone_number", "name", "email")
+    ordering = ("id",)
+    filter_horizontal = (
+        "groups",
+        "user_permissions",
+    )
+
+    def get_queryset(self, request):
+
+        qs = self.model._default_manager.get_queryset()
+        # TODO: this should be handled by some parameter to the ChangeList.
+        ordering = self.get_ordering(request)
+        if ordering:
+            qs = qs.all()
+        return qs
+
+
+
+
+
+
+
 
 
 class ImageInline(GenericTabularInline):
@@ -189,7 +314,7 @@ class DamagedAdmin(admin.ModelAdmin):
         return StoreHouse.objects.exists()
 
 
-
+admin.site.register(User, CustomAdminUser)
 admin.site.register(TransformationStoreHouse, TransformationStoreHouseAdmin)
 admin.site.register(Damaged, DamagedAdmin)
 admin.site.register(OutgoingReturns, OutgoingReturnsAdmin)    

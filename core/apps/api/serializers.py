@@ -1,5 +1,18 @@
 from rest_framework import serializers
-from apps.models import *
+from apps.models import (
+    StoreHouse,
+    Station,
+    User,
+    Incoming,
+    Outgoing,
+    IncomingReturns,
+    Image,
+    StoreHouseCategroy,
+    Supplier,
+    Category,
+    Beneficiary,
+    
+)
 
 
 class StoreHouseSerializer(serializers.ModelSerializer):
