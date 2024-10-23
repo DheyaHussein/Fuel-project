@@ -16,7 +16,15 @@ from apps.models import (
     Beneficiary,
     
 )
-from .serializers import *
+from .serializers import (
+    StoreHouseSerializer,
+    StationSerializer,
+    StoreHouseCategroySerializer,
+    SupplierSerializer,
+    BeneficiarySerializer,
+    UserSerializer,
+    IncomingSerializer
+)
 
 
 class StoreHouseView(ListAPIView):
@@ -26,4 +34,13 @@ class StoreHouseView(ListAPIView):
     
 class UserView(ListAPIView):
     queryset = User.objects.all()
-    serializer_class = UserSerializer    
+    serializer_class = UserSerializer  
+
+class IcomingViewList(ListAPIView):
+    queryset = Incoming.objects.all()
+    serializer_class = IncomingSerializer
+    
+class StoreHouseCategroyViewList(ListAPIView):
+    queryset = StoreHouseCategroy.objects.all()
+    serializer_class = StoreHouseCategroySerializer
+          
