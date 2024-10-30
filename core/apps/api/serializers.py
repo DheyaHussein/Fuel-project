@@ -4,7 +4,12 @@ from os import name
 from pyexpat import model
 import re
 from tkinter import NO
+from typing import Required
 from attr import fields
+import attr
+from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
+
 from rest_framework import serializers
 from apps.models import (
     StoreHouse,
@@ -138,6 +143,58 @@ class IncomingSerializer(serializers.ModelSerializer):
         model = Incoming
         fields = '__all__'
 
+
+class IncomeCreateSerializer(serializers.ModelSerializer):
+    store = serializers.PrimaryKeyRelatedField(queryset=StoreHouse.objects.all())
+    supplier = serializers.PrimaryKeyRelatedField(queryset=Supplier.objects.all())
+    station = serializers.PrimaryKeyRelatedField(queryset=Station.objects.all())
+    attach_file = Image_Serializers(many=True, required=False) 
+    
+    def get_store(self, obj):
+        return obj.store.name
+
+    def get_supplier(self, obj):
+        return obj.supplier.name
+    
+    def get_station(self, obj):
+        return obj.station.station_name    
+
+    def create(self, validated_data):
+        attach_file = validated_data.pop('attach_file', None)
+        # store = validated_data.pop('store')
+        
+        
+        incoming = Incoming.objects.create(**validated_data)
+        if attach_file:
+            incoming.attach_file.set(attach_file)
+            
+       # Update the corresponding StoreHouseCategroy's current amount
+       
+        # store_cat = StoreHouseCategroy.objects.filter(catergory__name=incoming.cat, storehouse=incoming.store).filter()
+        # print(store_cat)
+        # print(incoming.cat)
+        # if store_cat:
+            
+        #     for store_cat_sq in store_cat:
+        #         store_cat_sq.current_amount += float(incoming.imported_quantites) 
+        #         print(f"Updating {store_cat} current amount from {store_cat_sq.current_amount - float(incoming.imported_quantites)} to {store_cat_sq.current_amount}")
+    
+        #         store_cat_sq.save()
+        # else:
+        #     # Log a warning if the store category was not found
+        #     print(f"Warning: StoreHouseCategory not found for store {incoming.store} and category {incoming.cat}")
+      
+        # log_event(in)
+        
+
+        
+        
+        return incoming
+    class Meta:
+        model = Incoming
+        fields = '__all__'
+    # pass
+    
         
 class OutgoingSerializer(serializers.ModelSerializer):
     store_house = serializers.SerializerMethodField()
@@ -156,7 +213,37 @@ class OutgoingSerializer(serializers.ModelSerializer):
         model = Outgoing
         fields = '__all__'
 
-
+class OutgoingCreateSerializer(serializers.ModelSerializer):
+    store_house = serializers.PrimaryKeyRelatedField(queryset=StoreHouse.objects.all())
+    beneficiary = serializers.PrimaryKeyRelatedField(queryset=Beneficiary.objects.all())
+    attach_file = Image_Serializers(many=True, read_only=False, required=False)
+    
+    def validate(self, data):
+        outgoing_quantites = data.get('outgoing_quantites')
+        print(outgoing_quantites)
+        store_house = data.get('store_house')
+        cat = data.get('cat')
+        store_categroy_qs = StoreHouseCategroy.objects.filter(storehouse=store_house, catergory__name=cat)
+        print(store_categroy_qs)
+        for stor in store_categroy_qs:
+            if stor.current_amount < float(outgoing_quantites):
+                raise ValidationError(_("Not enough stock in the storehouse for this category.")) 
+        return data
+    
+    def create(self, validated_data):
+        attach_file = validated_data.pop('attach_file', None)
+        
+        outgoing = Outgoing.objects.create(**validated_data)
+        
+        if attach_file:
+            outgoing.attach_file.set(attach_file)
+        return outgoing
+    
+    class Meta:
+        model = Outgoing
+        fields = '__all__'
+    
+    # pass
 class TransformationstorehouseSerializer(serializers.ModelSerializer):
     from_storehouse = serializers.SerializerMethodField()
     to_storehouse = serializers.SerializerMethodField()

@@ -300,6 +300,9 @@ class Incoming(models.Model):
         for store_categroy in store_categroy_qs:
             store_categroy.current_amount += imported_qty
             store_categroy.save()
+            print(f"Updating {store_categroy} current amount from {store_categroy.current_amount - imported_qty} to {store_categroy.current_amount}")
+            
+            
 
         super().save(*args, **kwargs)
 
@@ -331,7 +334,7 @@ class Outgoing(models.Model):
         db_table = 'Outgoing'
         
     def __str__(self):
-        return f'the outgoing from  {self.store.name}  type of {self.cat}'
+        return f'the outgoing from  {self.store_house.name}  type of {self.cat}'
 
     
     
@@ -353,6 +356,8 @@ class Outgoing(models.Model):
             stor.current_amount -= outgogin_qty
             print(stor.current_amount)
             stor.save()
+            print(f"Updating {stor} current amount from {stor.current_amount + outgogin_qty} to {stor.current_amount}")
+            
         
         
         # Update the current_amount of StoreHouseType
@@ -526,6 +531,27 @@ class TransformationStoreHouse(models.Model):
  
     #  def get_absolute_url(self):
     #      return reverse("transformationStoreHouse_detail", kwargs={"pk": self.pk})
+    # def clean(self):
+    #     store_category_from = StoreHouseCategroy.objects.filter(storehouse=self.from_storehouse, catergory__name=self.cat).first()
+    #     store_category_to = StoreHouseCategroy.objects.filter(storehouse=self.to_storehouse, catergory__name=self.cat).first()
+    #     print(store_category_from)
+
+    #     # Check if there's enough stock in the from_storehouse
+    #     if store_category_from and store_category_to:
+    #         if self.transform_quantites <= store_category_from.current_amount:
+    #             # Subtract quantity from 'from_storehouse'
+    #             store_category_from.current_amount -= self.transform_quantites
+    #             # store_category_from.save()
+    #             print(store_category_from)
+
+    #             # Add quantity to 'to_storehouse'
+    #             store_category_to.current_amount += self.transform_quantites
+    #             # store_category_to.save()
+    #         else:
+    #             raise ValidationError(_("The transform quantities must not exceed the available quantity in the 'from' store."))
+    #     else:
+    #         raise ValidationError(_("Either the 'from' storehouse or 'to' storehouse category does not exist."))
+        
     def save(self, *args, **kwargs):
         # Fetch StoreHouseCategory records for 'from_storehouse' and 'to_storehouse'
         store_category_from = StoreHouseCategroy.objects.filter(storehouse=self.from_storehouse, catergory__name=self.cat).first()
