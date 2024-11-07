@@ -7,6 +7,8 @@ from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from django.utils.translation import gettext_lazy as _
 from rest_framework import status
+from rest_framework.decorators import action
+
 
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated, IsAdminUser, AllowAny
 
@@ -24,6 +26,7 @@ from apps.models import (
     Supplier,
     Category,
     Beneficiary,
+    Damaged
     
 )
 from .serializers import (
@@ -39,6 +42,7 @@ from .serializers import (
     TransformationstorehouseSerializer,
     IncomeCreateSerializer,
     OutgoingCreateSerializer,
+    StoreMovementReportSerializer,
 )
 
 
@@ -114,6 +118,30 @@ class OutgoinViewList(viewsets.ModelViewSet):
 class TransformationstorehouseViewList(ListAPIView):
     pass
 
-class DamagedViewList(ListAPIView):
-    pass
+class DamagedViewList(viewsets.ModelViewSet):
+    queryset = Damaged.objects.all()
+    serializer_class = DamagedSerializer
+    permission_classes = [IsAuthenticated]  # Adjust as necessary for your use case
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)  # Save the new damaged record
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    # pass
           
+class StoreMovementReportViewSet(viewsets.ModelViewSet):
+    queryset = StoreHouse.objects.all()
+    serializer_class = StoreMovementReportSerializer
+    lookup_field = 'pk'
+
+    # Define a custom action for retrieving the report
+    @action(detail=True, methods=['get'])
+    def retrieve_report(self, request, pk=None):
+        # pk here refers to the store ID
+        data = {'store_id': pk}
+        serializer = self.get_serializer(data=data)
+        if serializer.is_valid():
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -24,6 +24,7 @@ from apps.models import (
     Category,
     Beneficiary,
     TransformationStoreHouse,
+    Damaged
     
 )
 
@@ -260,4 +261,62 @@ class TransformationstorehouseSerializer(serializers.ModelSerializer):
     pass       
 
 class DamagedSerializer(serializers.ModelSerializer):
-    pass
+    store = serializers.PrimaryKeyRelatedField(queryset=StoreHouse.objects.all())
+    
+    def validate(self, data):
+        # Retrieve related fields from data
+        store = data.get('store')
+        cat = data.get('cat')
+        damaged_quantites = data.get('damaged_quantites')
+        
+        # Check available stock for the specific category in the store
+        store_category_qs = StoreHouseCategroy.objects.filter(storehouse=store, catergory__name=cat)
+        if not store_category_qs.exists():
+            raise ValidationError("The specified category does not exist in this store.")
+
+        # Ensure there's enough stock to mark as damaged
+        for store_category in store_category_qs:
+            if store_category.current_amount < damaged_quantites:
+                raise ValidationError("Damaged quantity exceeds the available stock in the store.")
+
+        return data
+
+    class Meta:
+        model = Damaged
+        fields = '__all__'
+    # pass
+
+
+class StoreMovementReportSerializer(serializers.Serializer):
+    # store = serializers.PrimaryKeyRelatedField(queryset=StoreHouse.objects.all())
+    incoming = serializers.SerializerMethodField()
+    outgoing = serializers.SerializerMethodField()
+    damaged = serializers.SerializerMethodField()
+
+    def get_incoming(self, obj):
+        # Retrieve Incoming entries related to the store
+        incoming_data = Incoming.objects.filter(store=obj.id)
+        return IncomingSerializer(incoming_data, many=True).data
+
+    def get_outgoing(self, obj):
+        # Retrieve Outgoing entries related to the store
+        outgoing_data = Outgoing.objects.filter(store_house=obj.id)
+        return OutgoingSerializer(outgoing_data, many=True).data
+
+    def get_damaged(self, obj):
+        # Retrieve Damaged entries related to the store
+        damaged_data = Damaged.objects.filter(store=obj.id)
+        return DamagedSerializer(damaged_data, many=True).data
+
+    def to_representation(self, instance):
+        # Custom serialization logic to include the store and its movement data
+        report_data = {
+            "store": instance.id,
+            "incoming": self.get_incoming(instance) or None,
+            "outgoing": self.get_outgoing(instance) or None,
+            "damaged": self.get_damaged(instance) or None,
+        }
+        return report_data
+
+    class Meta:
+        fields = ['incoming', 'outgoing', 'damaged']
