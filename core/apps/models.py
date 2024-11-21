@@ -259,23 +259,23 @@ class CommonInfo(models.Model):
         abstract = True 
         
 
-class Incoming(models.Model):
+class Incoming(CommonInfo):
     # store_house = models.ForeignKey(StoreHouse, verbose_name=_("StoreHouse"), on_delete=models.CASCADE)
     store = models.ForeignKey(StoreHouse, verbose_name=_("StoreHouse"), on_delete=models.CASCADE)
     incom_date = models.DateTimeField(_("incom_date"), auto_now=False, auto_now_add=False)
-    paper_number = models.CharField(_("Numbering on Paper"), max_length=50)
+    # paper_number = models.CharField(_("Numbering on Paper"), max_length=50)
     supplier = models.ForeignKey(Supplier, verbose_name=_("Supplier"), on_delete=models.CASCADE)
     station = models.ForeignKey(Station, on_delete=models.CASCADE)
     supply_voucher_number = models.CharField(max_length=50)
-    recipient_name = models.CharField(_("Recipient`s Name"), max_length=90)
-    deliverer_name = models.CharField(max_length=50)
-    recipient_miltry_number = models.CharField(max_length=50)
-    deliverer_miltry_number = models.CharField(max_length=50)
+    # recipient_name = models.CharField(_("Recipient`s Name"), max_length=90)
+    # deliverer_name = models.CharField(max_length=50)
+    # recipient_miltry_number = models.CharField(max_length=50)
+    # deliverer_miltry_number = models.CharField(max_length=50)
     # statement = models.CharField(_("statement"), max_length=50)
-    attach_file = GenericRelation(Image, related_query_name='attach_file')
+    # attach_file = GenericRelation(Image, related_query_name='attach_file')
     imported_quantites = models.CharField(_("imported quantites"), max_length=50)
-    cat = models.CharField(_("catergory"), max_length=50, choices=CATEGORY_CHOICES)
-    note = models.CharField(_("note"), max_length=50, blank=True)
+    # cat = models.CharField(_("catergory"), max_length=50, choices=CATEGORY_CHOICES)
+    # note = models.CharField(_("note"), max_length=50, blank=True)
     
     class Meta:
         db_table = 'Incoming'
@@ -312,21 +312,21 @@ class Incoming(models.Model):
     
     
 
-class Outgoing(models.Model):
+class Outgoing(CommonInfo):
     store_house = models.ForeignKey(StoreHouse, verbose_name=_("StoreHouse"), on_delete=models.CASCADE)
     outging_date = models.DateTimeField(_("outging date"), auto_now=False, auto_now_add=True)
-    paper_number = models.CharField(_("Numbering on Paper"), max_length=50)
+    # paper_number = models.CharField(_("Numbering on Paper"), max_length=50)
     beneficiary = models.ForeignKey(Beneficiary, verbose_name=_("Beneficiary"), on_delete=models.CASCADE)
     supply_voucher_number = models.CharField(max_length=50)
-    recipient_name = models.CharField(_("Recipient`s Name"), max_length=90)
-    deliverer_name = models.CharField(max_length=50)
-    recipient_miltry_number = models.CharField(max_length=50)
-    deliverer_miltry_number = models.CharField(max_length=50)
+    # recipient_name = models.CharField(_("Recipient`s Name"), max_length=90)
+    # deliverer_name = models.CharField(max_length=50)
+    # recipient_miltry_number = models.CharField(max_length=50)
+    # deliverer_miltry_number = models.CharField(max_length=50)
     # statement = models.CharField(_("statement"), max_length=50)
-    attach_file = GenericRelation(Image, related_query_name='attach_file')
+    # attach_file = GenericRelation(Image, related_query_name='attach_file')
     outgoing_quantites = models.CharField(_("outgoing quantites"), max_length=50)
-    cat = models.CharField(_("catergory"), max_length=50, choices=CATEGORY_CHOICES)
-    note = models.CharField(_("note"), max_length=50)
+    # cat = models.CharField(_("catergory"), max_length=50, choices=CATEGORY_CHOICES)
+    # note = models.CharField(_("note"), max_length=50)
     transfer_date = models.DateField(_("transfer date"), auto_now=False, auto_now_add=False)
     current_transfer_date = models.DateField(_("transfer date"), auto_now=False, auto_now_add=True)
     
