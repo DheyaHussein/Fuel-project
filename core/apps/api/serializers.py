@@ -12,6 +12,7 @@ from django.utils.translation import gettext_lazy as _
 
 from rest_framework import serializers
 from apps.models import (
+    OutgoingReturns,
     StoreHouse,
     Station,
     User,
@@ -196,6 +197,174 @@ class IncomeCreateSerializer(serializers.ModelSerializer):
         fields = '__all__'
     # pass
     
+ 
+ 
+class IncomingReturnsSerializer(serializers.ModelSerializer):
+     # Read-only fields derived from the related Incoming instance
+    incoming_date = serializers.DateTimeField(read_only=True)
+    store_house = serializers.PrimaryKeyRelatedField(read_only=True)
+    supplier = serializers.PrimaryKeyRelatedField(read_only=True)
+    station = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    class Meta:
+        model = IncomingReturns
+        fields = [
+            "incoming",
+            "incoming_date",
+            "store_house",
+            "supplier",
+            "station",
+            "paper_number",
+            "recipient_name",
+            "deliverer_name",
+            "recipient_miltry_number",
+            "deliverer_miltry_number",
+            "return_date",
+            "cat",
+            "returned_quantites",
+            "reason_for_return",
+            "note",
+        ]
+
+    def validate(self, data):
+        """Custom validation logic for returned quantities and categories."""
+        incoming = data.get("incoming")
+        returned_quantities = data.get("returned_quantites")
+        category = data.get("cat")
+
+        # Ensure returned quantities are numeric
+        try:
+            returned_qty = float(returned_quantities)
+        except ValueError:
+            raise serializers.ValidationError(
+                {"returned_quantites": "Returned quantities must be a valid number."}
+            )
+
+        # Ensure the returned category matches the incoming category
+        if category != incoming.cat:
+            raise serializers.ValidationError(
+                {"cat": "The return category must match the incoming category."}
+            )
+
+        # Validate returned quantities do not exceed imported quantities
+        if returned_qty > float(incoming.imported_quantites):
+            raise serializers.ValidationError(
+                {"returned_quantites": "Returned quantities cannot exceed imported quantities."}
+            )
+
+        return data
+
+    def create(self, validated_data):
+        """Handle creation and update store quantities."""
+        incoming = validated_data.get("incoming")
+        returned_quantities = float(validated_data.get("returned_quantites"))
+
+        # Fetch related StoreHouseCategory
+        store_category_qs = StoreHouseCategroy.objects.filter(
+            storehouse=incoming.store, catergory__name=incoming.cat
+        ).first()
+
+        if not store_category_qs:
+            raise serializers.ValidationError(
+                {"store_house": "No matching storehouse category found."}
+            )
+
+        # Update the current amount in the storehouse category
+        store_category_qs.current_amount -= returned_quantities
+        if store_category_qs.current_amount < 0:
+            raise serializers.ValidationError(
+                {"returned_quantites": "Returned quantities result in negative stock."}
+            )
+
+        store_category_qs.save()
+
+        # Proceed with creating the IncomingReturns record
+        return super().create(validated_data)
+    # pass
+ 
+ 
+class OutgoingReturnsSerializer(serializers.ModelSerializer):
+     # Read-only fields derived from the related Incoming instance
+    outgoing_date = serializers.DateTimeField(read_only=True)
+    store_house = serializers.PrimaryKeyRelatedField(read_only=True)
+    supplier = serializers.PrimaryKeyRelatedField(read_only=True)
+    station = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    class Meta:
+        model = IncomingReturns
+        fields = [
+            "outgoing",
+            "outgoing_date",
+            "store_house",
+            "supplier",
+            "station",
+            "paper_number",
+            "recipient_name",
+            "deliverer_name",
+            "recipient_miltry_number",
+            "deliverer_miltry_number",
+            "return_date",
+            "cat",
+            "returned_quantites",
+            "reason_for_return",
+            "note",
+        ]
+
+    def validate(self, data):
+        """Custom validation logic for returned quantities and categories."""
+        outgoing = data.get("outgoing")
+        returned_quantities = data.get("returned_quantites")
+        category = data.get("cat")
+
+        # Ensure returned quantities are numeric
+        try:
+            returned_qty = float(returned_quantities)
+        except ValueError:
+            raise serializers.ValidationError(
+                {"returned_quantites": "Returned quantities must be a valid number."}
+            )
+
+        # Ensure the returned category matches the incoming category
+        if category != outgoing.cat:
+            raise serializers.ValidationError(
+                {"cat": "The return category must match the outgoing category."}
+            )
+
+        # Validate returned quantities do not exceed imported quantities
+        if returned_qty > float(outgoing.outgoing_quantites):
+            raise serializers.ValidationError(
+                {"returned_quantites": "Returned quantities cannot exceed imported quantities."}
+            )
+
+        return data
+
+    def create(self, validated_data):
+        """Handle creation and update store quantities."""
+        outgoing = validated_data.get("outgoing")
+        returned_quantities = float(validated_data.get("returned_quantites"))
+
+        # Fetch related StoreHouseCategory
+        store_category_qs = StoreHouseCategroy.objects.filter(
+            storehouse=outgoing.store, catergory__name=outgoing.cat
+        ).first()
+
+        if not store_category_qs:
+            raise serializers.ValidationError(
+                {"store_house": "No matching storehouse category found."}
+            )
+
+        # Update the current amount in the storehouse category
+        store_category_qs.current_amount += returned_quantities
+        if store_category_qs.current_amount < 0:
+            raise serializers.ValidationError(
+                {"returned_quantites": "Returned quantities result in negative stock."}
+            )
+
+        store_category_qs.save()
+
+        # Proceed with creating the IncomingReturns record
+        return super().create(validated_data)
+ 
         
 class OutgoingSerializer(serializers.ModelSerializer):
     store_house = serializers.SerializerMethodField()
@@ -246,19 +415,45 @@ class OutgoingCreateSerializer(serializers.ModelSerializer):
     
     # pass
 class TransformationstorehouseSerializer(serializers.ModelSerializer):
-    from_storehouse = serializers.SerializerMethodField()
-    to_storehouse = serializers.SerializerMethodField()
+    from_storehouse = serializers.PrimaryKeyRelatedField(queryset=StoreHouse.objects.all())
+    to_storehouse = serializers.PrimaryKeyRelatedField(queryset=StoreHouse.objects.all())
     
     
-    
-    def get_from_storehouse(self, obj):
-        return obj.from_storehouse.name
-    def get_to_storehouse(self, obj):
-        return obj.to_storehouse.name
+    def validate(self, data):
+        from_storehouse = data.get("from_storehouse")
+        to_storehouse = data.get("to_storehouse")
+        transform_quantites = data.get("transform_quantites")
+        cat = data.get("cat")
+        
+        # Check if from_storehouse and to_storehouse are different
+        if from_storehouse == to_storehouse:
+            raise serializers.ValidationError("The 'from' and 'to' storehouses must be different.")
+        
+        # Retrieve store categories for the from_storehouse and to_storehouse
+        store_category_from = StoreHouseCategroy.objects.filter(storehouse=from_storehouse, catergory__name=cat).first()
+        store_category_to = StoreHouseCategroy.objects.filter(storehouse=to_storehouse, catergory__name=cat).first()
+        
+         # Validate existence of categories
+        if not store_category_from or not store_category_to:
+            raise serializers.ValidationError("Either the 'from' or 'to' storehouse category does not exist.")
+                
+        # Validate available quantity
+        if transform_quantites > store_category_from.current_amount:
+            raise serializers.ValidationError("The transform quantities exceed the available quantity in the 'from' storehouse.")
+        return data
+
+
+    def create(self, validated_data):
+        transformation = TransformationStoreHouse.objects.create(**validated_data)
+        transformation.update_storehouse_quantities()
+        
+        return transformation
+        
+         
     class Meta:
         model = TransformationStoreHouse
         fields = '__all__'
-    pass       
+           
 
 class DamagedSerializer(serializers.ModelSerializer):
     store = serializers.PrimaryKeyRelatedField(queryset=StoreHouse.objects.all())
@@ -292,6 +487,8 @@ class StoreMovementReportSerializer(serializers.Serializer):
     incoming = serializers.SerializerMethodField()
     outgoing = serializers.SerializerMethodField()
     damaged = serializers.SerializerMethodField()
+    income_return = serializers.SerializerMethodField()
+    outgoing_return = serializers.SerializerMethodField()
 
     def get_incoming(self, obj):
         # Retrieve Incoming entries related to the store
@@ -307,6 +504,13 @@ class StoreMovementReportSerializer(serializers.Serializer):
         # Retrieve Damaged entries related to the store
         damaged_data = Damaged.objects.filter(store=obj.id)
         return DamagedSerializer(damaged_data, many=True).data
+    def get_income_return(self, obj):
+        return_data = IncomingReturns.objects.filter(store_house=obj.id)
+        return IncomingReturnsSerializer(return_data, many=True).data
+    def get_outgoing_return(self, obj):
+        return_data = OutgoingReturns.objects.filter(store_house=obj.id)
+        return OutgoingSerializer(return_data, many=True).data
+        
 
     def to_representation(self, instance):
         # Custom serialization logic to include the store and its movement data
@@ -315,8 +519,14 @@ class StoreMovementReportSerializer(serializers.Serializer):
             "incoming": self.get_incoming(instance) or None,
             "outgoing": self.get_outgoing(instance) or None,
             "damaged": self.get_damaged(instance) or None,
+            "income return": self.get_income_return(instance) or None,
+            "outgoing return": self.get_outgoing_return(instance) or None,
         }
         return report_data
 
     class Meta:
         fields = ['incoming', 'outgoing', 'damaged']
+        
+
+class StoreSatatSerializer(serializers.ModelSerializer):
+   pass 

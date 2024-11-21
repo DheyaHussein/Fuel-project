@@ -528,10 +528,26 @@ class TransformationStoreHouse(models.Model):
  
     def __str__(self):
          return f'Transform from {self.from_storehouse} to {self.to_storehouse}'
- 
-    #  def get_absolute_url(self):
-    #      return reverse("transformationStoreHouse_detail", kwargs={"pk": self.pk})
-    # def clean(self):
+     
+     
+    def update_storehouse_quantities(self):
+        store_category_from = StoreHouseCategroy.objects.filter(storehouse=self.from_storehouse, catergory__name=self.cat).first()
+        store_category_to = StoreHouseCategroy.objects.filter(storehouse=self.to_storehouse, catergory__name=self.cat).first()
+        
+        if store_category_from and store_category_to:
+            if self.transform_quantites <= store_category_from.current_amount:
+                # Subtract from 'from_storehouse' and add to 'to_storehouse'
+                store_category_from.current_amount -= self.transform_quantites
+                store_category_from.save()
+                
+                store_category_to.current_amount += self.transform_quantites
+                store_category_to.save()
+            else:
+                raise ValidationError(_("The transform quantities must not exceed available stock in the 'from' storehouse."))
+
+        
+    # def save(self, *args, **kwargs):
+    #     # Fetch StoreHouseCategory records for 'from_storehouse' and 'to_storehouse'
     #     store_category_from = StoreHouseCategroy.objects.filter(storehouse=self.from_storehouse, catergory__name=self.cat).first()
     #     store_category_to = StoreHouseCategroy.objects.filter(storehouse=self.to_storehouse, catergory__name=self.cat).first()
     #     print(store_category_from)
@@ -541,40 +557,18 @@ class TransformationStoreHouse(models.Model):
     #         if self.transform_quantites <= store_category_from.current_amount:
     #             # Subtract quantity from 'from_storehouse'
     #             store_category_from.current_amount -= self.transform_quantites
-    #             # store_category_from.save()
-    #             print(store_category_from)
+    #             store_category_from.save()
 
     #             # Add quantity to 'to_storehouse'
     #             store_category_to.current_amount += self.transform_quantites
-    #             # store_category_to.save()
+    #             store_category_to.save()
     #         else:
     #             raise ValidationError(_("The transform quantities must not exceed the available quantity in the 'from' store."))
     #     else:
     #         raise ValidationError(_("Either the 'from' storehouse or 'to' storehouse category does not exist."))
-        
-    def save(self, *args, **kwargs):
-        # Fetch StoreHouseCategory records for 'from_storehouse' and 'to_storehouse'
-        store_category_from = StoreHouseCategroy.objects.filter(storehouse=self.from_storehouse, catergory__name=self.cat).first()
-        store_category_to = StoreHouseCategroy.objects.filter(storehouse=self.to_storehouse, catergory__name=self.cat).first()
-        print(store_category_from)
 
-        # Check if there's enough stock in the from_storehouse
-        if store_category_from and store_category_to:
-            if self.transform_quantites <= store_category_from.current_amount:
-                # Subtract quantity from 'from_storehouse'
-                store_category_from.current_amount -= self.transform_quantites
-                store_category_from.save()
-
-                # Add quantity to 'to_storehouse'
-                store_category_to.current_amount += self.transform_quantites
-                store_category_to.save()
-            else:
-                raise ValidationError(_("The transform quantities must not exceed the available quantity in the 'from' store."))
-        else:
-            raise ValidationError(_("Either the 'from' storehouse or 'to' storehouse category does not exist."))
-
-        # Call the parent save method
-        super().save(*args, **kwargs)
+    #     # Call the parent save method
+    #     super().save(*args, **kwargs)
             
         
         

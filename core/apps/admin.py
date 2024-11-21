@@ -6,6 +6,8 @@ from django.contrib.contenttypes.admin import GenericTabularInline
 from django import forms
 from django.contrib.auth.admin import UserAdmin
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
+
 
 from django.contrib.auth.forms import (
     AdminPasswordChangeForm,
@@ -300,6 +302,28 @@ class TransformationStoreHouseAdmin(admin.ModelAdmin):
     def has_add_permission(self, request):
         # Allow adding transformations only if there are storehouses
         return StoreHouse.objects.exists()
+    def save_model(self, request, obj, form, change):
+        # Check if this is a new instance (not yet saved)
+        if not change:  # Only apply logic on create
+            store_category_from = StoreHouseCategroy.objects.filter(storehouse=obj.from_storehouse, catergory__name=obj.cat).first()
+            store_category_to = StoreHouseCategroy.objects.filter(storehouse=obj.to_storehouse, catergory__name=obj.cat).first()
+
+            if store_category_from and store_category_to:
+                if obj.transform_quantites <= store_category_from.current_amount:
+                    # Adjust quantities directly
+                    store_category_from.current_amount -= obj.transform_quantites
+                    store_category_from.save()
+                    
+                    store_category_to.current_amount += obj.transform_quantites
+                    store_category_to.save()
+                else:
+                    raise ValidationError(_("The transform quantities must not exceed the available quantity in the 'from' store."))
+            else:
+                raise ValidationError(_("Either the 'from' storehouse or 'to' storehouse category does not exist."))
+
+        # Save the instance without triggering `save` logic in the model
+        super().save_model(request, obj, form, change)
+
 
 
 
